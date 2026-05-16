@@ -4,13 +4,14 @@ import {
   createProduct,
   updateProduct,
   deleteProduct,
-  getSubcategoriesLevel1,
+  getAllSubcategoriesLevel1,
   getSubcategoriesLevel2,
   getSubcategoriesLevel3,
   getSubcategoriesLevel4,
   getProductImages,
   createProductImage,
   deleteProductImage,
+  getHierarchyFromLevel4,
 } from '../api';
 import './Products.css';
 
@@ -43,7 +44,7 @@ function Products() {
       setProducts(prodRes.data);
       
       // Load all Level4 subcategories
-      const level1Res = await getSubcategoriesLevel1();
+      const level1Res = await getAllSubcategoriesLevel1();
       const allLevel4 = [];
       
       for (const level1 of level1Res.data || []) {
@@ -87,12 +88,24 @@ function Products() {
     }
 
     try {
+      // Get all hierarchy IDs from level4_id
+      const hierarchy = await getHierarchyFromLevel4(form.level4_id);
+      if (!hierarchy) {
+        setError('Could not determine category hierarchy for selected Level 4');
+        return;
+      }
+
       const productData = {
         name: form.name,
         featured_image: form.featured_image || '',
         pic2_url: form.pic2_url || '',
         details: form.details || '',
-        level4_id: form.level4_id,
+        level1_id: hierarchy.level1_id,
+        level2_id: hierarchy.level2_id,
+        level3_id: hierarchy.level3_id,
+        level4_id: hierarchy.level4_id,
+        category_id: hierarchy.category_id,
+        // subcategory_id is left NULL - using new level-based hierarchy instead
       };
 
       if (editingId) {

@@ -1,22 +1,63 @@
 # Joedan - Product Management System
 
-A full-stack application for managing products, categories, and subcategories with React frontend and Express/Supabase backend.
+A full-stack application for managing products, categories, and subcategories with React frontend and Supabase backend.
+
+## 🚀 Quick Start (NO Backend Server Needed!)
+
+**New Option:** Run React client directly connected to Supabase (no Express server required):
+
+```bash
+cd client
+npm install
+npm start
+```
+
+✅ Opens at `http://localhost:3001`
+✅ Connects directly to Supabase
+✅ All data loads automatically
+✅ NO backend server needed!
+
+**For details, see:** [DIRECT_SUPABASE_README.md](DIRECT_SUPABASE_README.md)
+
+---
+
+## Architecture Options
+
+### Option 1: Direct Client-to-Supabase (Recommended for Development)
+```
+React App (Port 3001) → Supabase → Database
+```
+- Pros: Simple, one process, faster setup
+- Best for: Development, prototyping, simple applications
+- See: [DIRECT_SUPABASE_README.md](DIRECT_SUPABASE_README.md)
+
+### Option 2: Full Stack with Express Backend
+```
+React App (Port 3001) → Express (Port 5000) → Supabase → Database
+```
+- Pros: Can add backend business logic, authentication, integrations
+- Best for: Complex applications, external APIs, custom logic
+- See: Setup Instructions below
+
+---
 
 ## Project Structure
 
 ```
 joedan/
-├── client/          # React frontend (port 3000)
-├── server/          # Express API (port 5000)
+├── client/          # React frontend (port 3001)
+├── server/          # Express API (port 5000) - Optional
 ├── supabase/        # Database schema
 ├── data/            # Local data directories
+├── DIRECT_SUPABASE_README.md    # ← READ THIS for new setup!
+├── CODE_CHANGES_SUPABASE.md      # Details of code changes
 └── README.md        # This file
 ```
 
 ## Tech Stack
 
-- **Frontend**: React 19, Axios
-- **Backend**: Express.js, Node.js
+- **Frontend**: React 19, Axios, Supabase Client
+- **Backend**: Express.js, Node.js (Optional)
 - **Database**: Supabase (PostgreSQL)
 - **Authentication**: Supabase Anon Key
 
@@ -107,48 +148,13 @@ joedan/
 
 ## Request/Response Examples
 
-### Create Category
-```bash
-POST http://localhost:5000/api/categories
-Content-Type: application/json
-
-{
-  "name": "Electronics",
-  "image": "https://example.com/electronics.jpg"
-}
-```
-
-### Create Subcategory
-```bash
-POST http://localhost:5000/api/subcategories
-Content-Type: application/json
-
-{
-  "name": "Smartphones",
-  "image": "https://example.com/phones.jpg",
-  "category_id": "<category-uuid>"
-}
-```
-
-### Create Product
-```bash
-POST http://localhost:5000/api/products
-Content-Type: application/json
-
-{
-  "name": "iPhone 15",
-  "image": "https://example.com/iphone15.jpg",
-  "details": "Latest Apple smartphone with A17 Pro chip",
-  "category_id": "<category-uuid>",
-  "subcategory_id": "<subcategory-uuid>"
-}
-```
-
 ## Frontend Features
 
 - **Categories Tab**: Create, edit, delete categories
 - **Subcategories Tab**: Manage subcategories with category references
 - **Products Tab**: Full CRUD for products with nested category/subcategory selection
+- **Image Gallery**: Product image loading from Supabase storage/URLs
+- **Settings**: Dynamic hero content and section text from Supabase
 - **Real-time UI**: Automatic refresh after operations
 - **Error Handling**: User-friendly error messages
 - **Responsive Design**: Grid layout that adapts to screen size
@@ -179,43 +185,63 @@ Content-Type: application/json
 
 ## Development
 
-### Running Both Services
-Open two terminals:
+### Direct Client-to-Supabase Setup
+This project now supports running the React client without the backend server. The frontend connects directly to Supabase using `@supabase/supabase-js`.
 
-**Terminal 1 - Backend:**
+**Steps:**
 ```bash
-cd server
+cd client
+npm install
 npm start
 ```
 
-**Terminal 2 - Frontend:**
+Open the app in your browser and verify data loads from Supabase.
+
+### Optional Backend Server
+The backend server in `server/` is still available for advanced use, but it is not required for the app to display data.
+
+To run the backend optionally:
 ```bash
-cd client
+cd server
+npm install
 npm start
 ```
 
 ### Scripts
 
-**Server:**
-- `npm start` - Run development server
-- `npm run dev` - Run with nodemon (auto-restart)
-
 **Client:**
-- `npm start` - Run development server
+- `npm install` - Install frontend dependencies
+- `npm start` - Run React development server
 - `npm run build` - Create production build
 - `npm test` - Run tests
+
+**Server (optional):**
+- `npm install` - Install backend dependencies
+- `npm start` - Run development server
+- `npm run dev` - Run with nodemon (auto-restart)
 
 ## Troubleshooting
 
 ### "Cannot connect to Supabase"
-- Verify `SUPABASE_KEY` in `server/.env`
-- Check if Supabase project is active
-- Ensure tables are created in Supabase
+- Verify `REACT_APP_SUPABASE_URL` and `REACT_APP_SUPABASE_KEY` in `client/.env`
+- Check if the Supabase project is active
+- Ensure the required tables exist in Supabase
 
-### "API endpoint not responding"
-- Ensure server is running on port 5000
-- Check if `REACT_APP_API_URL` is correct in `client/.env`
-- Browser console may have CORS errors (frontend/backend mismatch)
+### "Module '@supabase/supabase-js' not found"
+- Run `npm install` inside `client/`
+- Close VS Code if file locks prevent npm install
+- Re-run `npm install` in a fresh terminal
+
+### "No data appears"
+- Open browser DevTools Console for errors
+- Confirm network requests go to `supabase.co`
+- Inspect the Supabase query result in the browser console
+
+### Optional server-related issues
+- If you use the backend, ensure `server` is running on port 5000
+- If you do not use the backend, ignore any `localhost:5000` references
+- The direct client setup bypasses the backend entirely
+
 
 ### "Tables not found"
 - Run `supabase/schema.sql` in Supabase SQL Editor

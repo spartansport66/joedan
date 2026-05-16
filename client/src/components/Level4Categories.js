@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getSubcategoriesLevel4, getSubcategoriesLevel3, createSubcategoryLevel4, updateSubcategoryLevel4, deleteSubcategoryLevel4 } from '../api';
+import { getSubcategoriesLevel4, getAllSubcategoriesLevel3, createSubcategoryLevel4, updateSubcategoryLevel4, deleteSubcategoryLevel4 } from '../api';
 import './Level4Categories.css';
 
 function Level4Categories() {
@@ -23,7 +23,7 @@ function Level4Categories() {
   const loadLevel3Items = async () => {
     try {
       setLoading(true);
-      const res = await getSubcategoriesLevel3(null);
+      const res = await getAllSubcategoriesLevel3();
       setLevel3Items(res.data || []);
       if (res.data && res.data.length > 0) {
         setSelectedLevel3(res.data[0].id);

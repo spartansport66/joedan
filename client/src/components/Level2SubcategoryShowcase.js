@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getSubcategoriesLevel2, getSubcategoriesLevel1 } from '../api';
+import { getSubcategoriesLevel2, getSubcategoryLevel1ById } from '../api';
 import './Level2SubcategoryShowcase.css';
 
 function Level2SubcategoryShowcase({ level1Id, onSubcategorySelect, onBack }) {
@@ -19,13 +19,12 @@ function Level2SubcategoryShowcase({ level1Id, onSubcategorySelect, onBack }) {
       
       const [subRes, parentRes] = await Promise.all([
         getSubcategoriesLevel2(level1Id),
-        getSubcategoriesLevel1(null)
+        getSubcategoryLevel1ById(level1Id)
       ]);
       
       setSubcategories(subRes.data || []);
       
-      // Find parent name
-      const parent = parentRes.data?.find(s => s.id === level1Id);
+      const parent = parentRes.data;
       setParentName(parent ? parent.name : '');
     } catch (err) {
       setError('Failed to load subcategories');
