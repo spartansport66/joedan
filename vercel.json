@@ -1,5 +1,5 @@
 {
-  "buildCommand": "npm install --prefix ./client && npm run build --prefix ./client",
+  "buildCommand": "CI=false npm install --prefix ./client && CI=false npm run build --prefix ./client",
   "outputDirectory": "client/build",
   "installCommand": "npm ci --ignore-scripts",
   "regions": ["iad1"],
