@@ -5,6 +5,7 @@
   "regions": ["iad1"],
   "framework": "create-react-app",
   "env": {
-    "CI": "false"
+    "CI": "false",
+    "NODE_OPTIONS": "--max_old_space_size=4096"
   }
 }
