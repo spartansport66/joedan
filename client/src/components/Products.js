@@ -303,6 +303,19 @@ function Products() {
           ></textarea>
           <small className="helper-text">Tip: Press Enter to create new bullet points in the popup</small>
         </div>
+        {/* Breadcrumb showing selected route */}
+        <div className="selected-route">
+          {(() => {
+            const parts = [];
+            const findName = (list, id) => (list && list.find((i) => i.id === id)?.name) || null;
+            if (form.category_id) parts.push(findName(categories, form.category_id) || 'Category');
+            if (form.level1_id) parts.push(findName(level1Options, form.level1_id) || 'Level1');
+            if (form.level2_id) parts.push(findName(level2Options, form.level2_id) || 'Level2');
+            if (form.level3_id) parts.push(findName(level3Options, form.level3_id) || 'Level3');
+            if (form.level4_id) parts.push(findName(level4Options, form.level4_id) || (level4Subcats.find(l=>l.id===form.level4_id)?.name) || 'Level4');
+            return parts.length ? <p className="route">Selected route: {parts.join(' › ')}</p> : null;
+          })()}
+        </div>
         <div className="hierarchy-selects">
           <select
             value={form.category_id || ''}
