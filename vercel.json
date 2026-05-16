@@ -1,11 +1,6 @@
 {
   "buildCommand": "npm install --prefix ./client && npm run build --prefix ./client",
   "outputDirectory": "client/build",
-  "rewrites": [],
-  "env": {
-    "REACT_APP_SUPABASE_URL": "@react_app_supabase_url",
-    "REACT_APP_SUPABASE_ANON_KEY": "@react_app_supabase_anon_key"
-  },
   "regions": ["iad1"],
   "installCommand": "npm install",
   "framework": "create-react-app"
