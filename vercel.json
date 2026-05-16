@@ -3,5 +3,8 @@
   "outputDirectory": "client/build",
   "installCommand": "npm ci --ignore-scripts",
   "regions": ["iad1"],
-  "framework": "create-react-app"
+  "framework": "create-react-app",
+  "env": {
+    "CI": "false"
+  }
 }
