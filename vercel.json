@@ -8,5 +8,5 @@
   },
   "regions": ["iad1"],
   "installCommand": "npm install",
-  "framework": "react"
+  "framework": "create-react-app"
 }
