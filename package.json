@@ -1,0 +1,9 @@
+{
+  "name": "joedan",
+  "version": "1.0.0",
+  "description": "Joedan e-commerce platform",
+  "private": true,
+  "scripts": {
+    "build": "npm install --prefix ./client && npm run build --prefix ./client"
+  }
+}
