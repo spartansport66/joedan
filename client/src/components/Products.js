@@ -4,10 +4,15 @@ import {
   createProduct,
   updateProduct,
   deleteProduct,
+  getCategories,
+  getSubcategoriesLevel1,
   getAllSubcategoriesLevel1,
   getSubcategoriesLevel2,
   getSubcategoriesLevel3,
   getSubcategoriesLevel4,
+  getSubcategoryLevel1ById,
+  getSubcategoryLevel2ById,
+  getSubcategoryLevel3ById,
   getProductImages,
   createProductImage,
   deleteProductImage,
@@ -18,6 +23,11 @@ import './Products.css';
 function Products() {
   const [products, setProducts] = useState([]);
   const [level4Subcats, setLevel4Subcats] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [level1Options, setLevel1Options] = useState([]);
+  const [level2Options, setLevel2Options] = useState([]);
+  const [level3Options, setLevel3Options] = useState([]);
+  const [level4Options, setLevel4Options] = useState([]);
   const [productImages, setProductImages] = useState({}); // { productId: [images] }
   const [loading, setLoading] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -46,7 +56,6 @@ function Products() {
       // Load all Level4 subcategories
       const level1Res = await getAllSubcategoriesLevel1();
       const allLevel4 = [];
-      
       for (const level1 of level1Res.data || []) {
         const level2Res = await getSubcategoriesLevel2(level1.id);
         for (const level2 of level2Res.data || []) {
@@ -57,8 +66,13 @@ function Products() {
           }
         }
       }
-      
       setLevel4Subcats(allLevel4);
+
+      // Load categories and top-level lists for selectors
+      const cats = await getCategories();
+      setCategories(cats.data || []);
+      setLevel1Options(level1Res.data || []);
+      setLevel4Options(allLevel4);
       setError('');
 
       // Load images for all products
@@ -82,31 +96,71 @@ function Products() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.level4_id || !form.name) {
-      setError('Level 4 and Product name are required');
+    if (!form.name) {
+      setError('Product name is required');
       return;
     }
 
     try {
-      // Get all hierarchy IDs from level4_id
-      const hierarchy = await getHierarchyFromLevel4(form.level4_id);
-      if (!hierarchy) {
-        setError('Could not determine category hierarchy for selected Level 4');
-        return;
-      }
-
-      const productData = {
+      // Determine deepest selected level and build hierarchy
+      let productData = {
         name: form.name,
         featured_image: form.featured_image || '',
         pic2_url: form.pic2_url || '',
         details: form.details || '',
-        level1_id: hierarchy.level1_id,
-        level2_id: hierarchy.level2_id,
-        level3_id: hierarchy.level3_id,
-        level4_id: hierarchy.level4_id,
-        category_id: hierarchy.category_id,
-        // subcategory_id is left NULL - using new level-based hierarchy instead
+        level1_id: null,
+        level2_id: null,
+        level3_id: null,
+        level4_id: null,
+        category_id: null,
       };
+
+      if (form.level4_id) {
+        const hierarchy = await getHierarchyFromLevel4(form.level4_id);
+        if (hierarchy) {
+          productData = { ...productData, ...hierarchy };
+        }
+      } else if (form.level3_id) {
+        // build hierarchy from level3
+        const l3 = await getSubcategoryLevel3ById(form.level3_id);
+        if (l3 && l3.data) {
+          const level2Id = l3.data.level2_id;
+          const l2 = await getSubcategoryLevel2ById(level2Id);
+          const level1Id = l2?.data?.level1_id || null;
+          const l1 = level1Id ? await getSubcategoryLevel1ById(level1Id) : null;
+          const categoryId = l1?.data?.category_id || null;
+          productData = {
+            ...productData,
+            level3_id: form.level3_id,
+            level2_id: level2Id,
+            level1_id: level1Id,
+            category_id: categoryId,
+          };
+        }
+      } else if (form.level2_id) {
+        const l2 = await getSubcategoryLevel2ById(form.level2_id);
+        if (l2 && l2.data) {
+          const level1Id = l2.data.level1_id;
+          const l1 = level1Id ? await getSubcategoryLevel1ById(level1Id) : null;
+          const categoryId = l1?.data?.category_id || null;
+          productData = {
+            ...productData,
+            level2_id: form.level2_id,
+            level1_id: level1Id,
+            category_id: categoryId,
+          };
+        }
+      } else if (form.level1_id) {
+        const l1 = await getSubcategoryLevel1ById(form.level1_id);
+        const categoryId = l1?.data?.category_id || null;
+        productData = {
+          ...productData,
+          level1_id: form.level1_id,
+          category_id: categoryId,
+        };
+      } else if (form.category_id) {
+        productData.category_id = form.category_id;
+      }
 
       if (editingId) {
         await updateProduct(editingId, productData);
@@ -121,6 +175,10 @@ function Products() {
         featured_image: '',
         pic2_url: '',
         details: '',
+        category_id: '',
+        level1_id: '',
+        level2_id: '',
+        level3_id: '',
         level4_id: '',
       });
       setEditingId(null);
@@ -139,6 +197,10 @@ function Products() {
       featured_image: product.featured_image || '',
       pic2_url: product.pic2_url || '',
       details: product.details || '',
+      category_id: product.category_id || '',
+      level1_id: product.level1_id || '',
+      level2_id: product.level2_id || '',
+      level3_id: product.level3_id || '',
       level4_id: product.level4_id || '',
     });
   };
@@ -241,18 +303,75 @@ function Products() {
           ></textarea>
           <small className="helper-text">Tip: Press Enter to create new bullet points in the popup</small>
         </div>
-        <select
-          value={form.level4_id}
-          onChange={(e) => setForm({ ...form, level4_id: e.target.value })}
-          required
-        >
-          <option value="">Select Level 4</option>
-          {level4Subcats.map((level4) => (
-            <option key={level4.id} value={level4.id}>
-              {level4.name}
-            </option>
-          ))}
-        </select>
+        <div className="hierarchy-selects">
+          <select
+            value={form.category_id || ''}
+            onChange={async (e) => {
+              const catId = e.target.value || '';
+              setForm({ ...form, category_id: catId, level1_id: '', level2_id: '', level3_id: '', level4_id: '' });
+              const l1 = catId ? await getSubcategoriesLevel1(catId) : { data: [] };
+              setLevel1Options(l1.data || []);
+              setLevel2Options([]);
+              setLevel3Options([]);
+              setLevel4Options([]);
+            }}
+          >
+            <option value="">Select Category (or choose deeper level)</option>
+            {categories.map((c) => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
+
+          <select
+            value={form.level1_id || ''}
+            onChange={async (e) => {
+              const id = e.target.value || '';
+              setForm({ ...form, level1_id: id, level2_id: '', level3_id: '', level4_id: '' });
+              const l2 = id ? await getSubcategoriesLevel2(id) : { data: [] };
+              setLevel2Options(l2.data || []);
+              setLevel3Options([]);
+              setLevel4Options([]);
+            }}
+          >
+            <option value="">Select Level 1</option>
+            {level1Options.map((l1) => <option key={l1.id} value={l1.id}>{l1.name}</option>)}
+          </select>
+
+          <select
+            value={form.level2_id || ''}
+            onChange={async (e) => {
+              const id = e.target.value || '';
+              setForm({ ...form, level2_id: id, level3_id: '', level4_id: '' });
+              const l3 = id ? await getSubcategoriesLevel3(id) : { data: [] };
+              setLevel3Options(l3.data || []);
+              setLevel4Options([]);
+            }}
+          >
+            <option value="">Select Level 2</option>
+            {level2Options.map((l2) => <option key={l2.id} value={l2.id}>{l2.name}</option>)}
+          </select>
+
+          <select
+            value={form.level3_id || ''}
+            onChange={async (e) => {
+              const id = e.target.value || '';
+              setForm({ ...form, level3_id: id, level4_id: '' });
+              const l4 = id ? await getSubcategoriesLevel4(id) : { data: [] };
+              setLevel4Options(l4.data || []);
+            }}
+          >
+            <option value="">Select Level 3</option>
+            {level3Options.map((l3) => <option key={l3.id} value={l3.id}>{l3.name}</option>)}
+          </select>
+
+          <select
+            value={form.level4_id || ''}
+            onChange={(e) => setForm({ ...form, level4_id: e.target.value || '' })}
+          >
+            <option value="">Select Level 4 (optional)</option>
+            {level4Options.map((l4) => <option key={l4.id} value={l4.id}>{l4.name}</option>)}
+          </select>
+        </div>
         <button type="submit">{editingId ? 'Update' : 'Add'} Product</button>
         {editingId && (
           <button type="button" onClick={() => { setEditingId(null); setForm({ name: '', featured_image: '', details: '', level4_id: '' }); }}>
