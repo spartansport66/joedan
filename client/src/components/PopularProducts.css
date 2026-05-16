@@ -1,0 +1,151 @@
+.popular-products-section {
+  padding: 80px 0;
+  background-color: #fff;
+}
+
+.popular-products-section .container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.popular-products-section .section-title {
+  text-align: center;
+  font-size: 42px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0 0 10px 0;
+  font-family: 'Georgia', serif;
+}
+
+.popular-products-section .section-subtitle {
+  text-align: center;
+  font-size: 18px;
+  color: #c4a563;
+  margin: 0 0 50px 0;
+  font-weight: 500;
+}
+
+.popular-products-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 30px;
+}
+
+.popular-product-card {
+  border-radius: 8px;
+  overflow: hidden;
+  background: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  cursor: pointer;
+}
+
+.popular-product-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+}
+
+.popular-product-image {
+  position: relative;
+  width: 100%;
+  height: 280px;
+  overflow: hidden;
+  background: #f5f5f5;
+}
+
+.popular-product-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.popular-product-card:hover .popular-product-image img {
+  transform: scale(1.08);
+}
+
+.popular-product-image .overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.popular-product-card:hover .overlay {
+  opacity: 1;
+}
+
+.overlay .view-details {
+  color: white;
+  font-size: 16px;
+  font-weight: 600;
+  padding: 10px 20px;
+  border: 2px solid white;
+  border-radius: 4px;
+  text-decoration: none;
+}
+
+.popular-product-info {
+  padding: 20px;
+}
+
+.popular-product-info h3 {
+  font-size: 16px;
+  color: #1a1a1a;
+  margin: 0;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .popular-products-section {
+    padding: 60px 0;
+  }
+
+  .popular-products-grid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 20px;
+  }
+
+  .popular-product-image {
+    height: 240px;
+  }
+
+  .popular-products-section .section-title {
+    font-size: 32px;
+  }
+}
+
+@media (max-width: 480px) {
+  .popular-products-section {
+    padding: 40px 0;
+  }
+
+  .popular-products-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+  }
+
+  .popular-product-image {
+    height: 200px;
+  }
+
+  .popular-product-info {
+    padding: 15px;
+  }
+
+  .popular-product-info h3 {
+    font-size: 14px;
+  }
+}
