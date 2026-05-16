@@ -52,6 +52,7 @@ function CategoryShowcase({ onCategorySelect }) {
         <h2 className="section-title">{sectionTitle}</h2>
         <p className="section-subtitle">{sectionSubtitle}</p>
 
+        {error && <div className="error-banner">{error}</div>}
         <div className="categories-grid">
           {categories.map((category) => (
             <div key={category.id} className="category-card" onClick={() => onCategorySelect(category.id)}>

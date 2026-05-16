@@ -5,7 +5,7 @@ import './PopularProducts.css';
 
 function PopularProducts() {
   const [popularProducts, setPopularProducts] = useState([]);
-  const [productImages, setProductImages] = useState({});
+  const [, setProductImages] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [selectedProduct, setSelectedProduct] = useState(null);

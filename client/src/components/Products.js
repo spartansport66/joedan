@@ -30,7 +30,7 @@ function Products() {
   });
   const [newImageUrl, setNewImageUrl] = useState('');
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [, setSuccess] = useState('');
   const [selectedProductForImages, setSelectedProductForImages] = useState(null);
 
   useEffect(() => {

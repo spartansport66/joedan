@@ -8,6 +8,7 @@ function Level2SubcategoryShowcase({ level1Id, onSubcategorySelect, onBack }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     loadData();
   }, [level1Id]);

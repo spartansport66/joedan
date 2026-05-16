@@ -14,6 +14,7 @@ function Level3Categories() {
     loadLevel2Items();
   }, []);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (selectedLevel2) {
       loadLevel3Items();

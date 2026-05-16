@@ -122,6 +122,7 @@ function ContentCardsAdmin() {
     }
   };
 
+  // eslint-disable-next-line no-unused-vars
   const handleMoveCard = async (id, newPosition, newType) => {
     try {
       await updateContentCard(id, {
@@ -137,6 +138,7 @@ function ContentCardsAdmin() {
     }
   };
 
+  // eslint-disable-next-line no-unused-vars
   const handleChangePosition = async (id, newPosition) => {
     try {
       await updateContentCard(id, { display_position: newPosition });

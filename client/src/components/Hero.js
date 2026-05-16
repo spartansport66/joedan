@@ -8,7 +8,7 @@ function Hero() {
     hero_title: 'Premium Products For Your Lifestyle',
     hero_subtitle: 'Discover the finest collection of curated products'
   });
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
 
   useEffect(() => {
     loadSettings();

@@ -6,6 +6,8 @@ function ContentCards({ position = 'after_categories', title = null }) {
   const [cards, setCards] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // loadCards is intentionally not added to deps because it's stable in this component
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     loadCards();
   }, [position]);
