@@ -1,16 +1,9 @@
 {
-  "buildCommand": "npm install --prefix ./client && npm run build --prefix ./client && npm install --prefix ./server",
+  "buildCommand": "npm install --prefix ./client && npm run build --prefix ./client",
   "outputDirectory": "client/build",
   "env": {
-    "REACT_APP_API_URL": "@react_app_api_url",
-    "SUPABASE_URL": "@supabase_url",
-    "SUPABASE_KEY": "@supabase_key"
+    "REACT_APP_SUPABASE_URL": "@react_app_supabase_url",
+    "REACT_APP_SUPABASE_ANON_KEY": "@react_app_supabase_anon_key"
   },
-  "rewrites": [
-    {
-      "source": "/api/:path*",
-      "destination": "https://<your-backend-domain>/api/:path*"
-    }
-  ],
   "regions": ["iad1"]
 }
