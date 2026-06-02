@@ -1,9 +1,45 @@
 import { supabase } from './supabase';
 
-// ✅ PERFORMANCE: Simple cache for product images to avoid refetching
+// ✅ PERFORMANCE: Multi-layer caching (memory + localStorage) for faster loads
 const imageCache = {};
 let imagesCacheTimestamp = 0;
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes (memory cache)
+const LOCAL_STORAGE_CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours (persistent cache)
+
+// Helper to get from localStorage with expiration check
+const getCachedData = (key) => {
+  try {
+    const cached = localStorage.getItem(key);
+    if (!cached) return null;
+    
+    const { data, timestamp } = JSON.parse(cached);
+    const now = Date.now();
+    
+    // Check if cache is still valid
+    if (now - timestamp < LOCAL_STORAGE_CACHE_DURATION) {
+      return data;
+    }
+    
+    // Cache expired, remove it
+    localStorage.removeItem(key);
+    return null;
+  } catch (e) {
+    console.warn('localStorage read error:', e);
+    return null;
+  }
+};
+
+// Helper to set localStorage cache
+const setCachedData = (key, data) => {
+  try {
+    localStorage.setItem(key, JSON.stringify({
+      data,
+      timestamp: Date.now()
+    }));
+  } catch (e) {
+    console.warn('localStorage write error:', e);
+  }
+};
 
 const isValidUuidFilter = (value) => {
   return (
@@ -84,11 +120,20 @@ export const getCategoryIdFromLevel4 = async (level4Id) => {
 // CATEGORIES
 // ============================================================================
 export const getCategories = async () => {
+  const cacheKey = 'categories_all';
+  
+  // Check localStorage cache first
+  const cachedData = getCachedData(cacheKey);
+  if (cachedData) return { data: cachedData };
+  
   const { data, error } = await supabase
     .from('categories')
     .select('*')
     .order('created_at', { ascending: true });
   if (error) throw error;
+  
+  // Cache the results
+  setCachedData(cacheKey, data);
   return { data };
 };
 
@@ -98,6 +143,8 @@ export const createCategory = async (data) => {
     .insert([data])
     .select();
   if (error) throw error;
+  // Invalidate cache
+  localStorage.removeItem('categories_all');
   return { data: result };
 };
 
@@ -108,6 +155,8 @@ export const updateCategory = async (id, data) => {
     .eq('id', id)
     .select();
   if (error) throw error;
+  // Invalidate cache
+  localStorage.removeItem('categories_all');
   return { data: result };
 };
 
@@ -124,11 +173,20 @@ export const deleteCategory = async (id) => {
 // SUBCATEGORIES
 // ============================================================================
 export const getSubcategories = async () => {
+  const cacheKey = 'subcategories_all';
+  
+  // Check localStorage cache first
+  const cachedData = getCachedData(cacheKey);
+  if (cachedData) return { data: cachedData };
+  
   const { data, error } = await supabase
     .from('subcategories')
     .select('*')
     .order('created_at', { ascending: true });
   if (error) throw error;
+  
+  // Cache the results
+  setCachedData(cacheKey, data);
   return { data };
 };
 
@@ -410,11 +468,20 @@ export const deleteSubcategoryLevel4 = async (id) => {
 // PRODUCTS
 // ============================================================================
 export const getProducts = async () => {
+  const cacheKey = 'products_all';
+  
+  // Check localStorage cache first
+  const cachedData = getCachedData(cacheKey);
+  if (cachedData) return { data: cachedData };
+  
   const { data, error } = await supabase
     .from('products')
     .select('*')
     .order('created_at', { ascending: true });
   if (error) throw error;
+  
+  // Cache the results
+  setCachedData(cacheKey, data);
   return { data };
 };
 
@@ -437,6 +504,8 @@ export const createProduct = async (data) => {
     .insert([data])
     .select();
   if (error) throw error;
+  // Invalidate cache
+  localStorage.removeItem('products_all');
   return { data: result };
 };
 
@@ -447,6 +516,8 @@ export const updateProduct = async (id, data) => {
     .eq('id', id)
     .select();
   if (error) throw error;
+  // Invalidate cache
+  localStorage.removeItem('products_all');
   return { data: result };
 };
 
@@ -476,26 +547,39 @@ export const getProductImages = async (productId) => {
   return { data };
 };
 
-// ✅ PERFORMANCE FIX: Batch load all product images in ONE query instead of N+1 queries
-// Also caches results to avoid refetching within 5 minutes
+// ✅ PERFORMANCE FIX: Batch load all product images with multi-layer caching
+// Priority: Memory cache (5 min) → localStorage (24 hrs) → Supabase
 export const getAllProductImages = async () => {
   const now = Date.now();
+  const cacheKey = 'productImages_all';
   
-  // Return cached data if still valid
+  // 1. Check memory cache first (fastest)
   if (Object.keys(imageCache).length > 0 && (now - imagesCacheTimestamp) < CACHE_DURATION) {
     return { data: imageCache.allImages || [] };
   }
   
+  // 2. Check localStorage cache (medium speed)
+  const localStorageData = getCachedData(cacheKey);
+  if (localStorageData) {
+    // Restore to memory cache for quick access
+    imageCache.allImages = localStorageData;
+    imagesCacheTimestamp = now;
+    return { data: localStorageData };
+  }
+  
+  // 3. Fetch from Supabase (slowest - but we minimize this)
   const { data, error } = await supabase
     .from('product_images')
     .select('*')
     .order('product_id', { ascending: true })
     .order('display_order', { ascending: true });
+  
   if (error) throw error;
   
-  // Update cache
+  // Cache the results in both memory and localStorage
   imageCache.allImages = data;
   imagesCacheTimestamp = now;
+  setCachedData(cacheKey, data);
   
   return { data };
 };
@@ -506,6 +590,9 @@ export const createProductImage = async (data) => {
     .insert([data])
     .select();
   if (error) throw error;
+  // Invalidate cache
+  imageCache.allImages = [];
+  localStorage.removeItem('productImages_all');
   return { data: result };
 };
 
@@ -516,6 +603,9 @@ export const updateProductImage = async (id, data) => {
     .eq('id', id)
     .select();
   if (error) throw error;
+  // Invalidate cache
+  imageCache.allImages = [];
+  localStorage.removeItem('productImages_all');
   return { data: result };
 };
 
@@ -525,6 +615,9 @@ export const deleteProductImage = async (id) => {
     .delete()
     .eq('id', id);
   if (error) throw error;
+  // Invalidate cache
+  imageCache.allImages = [];
+  localStorage.removeItem('productImages_all');
   return { data: null };
 };
 
