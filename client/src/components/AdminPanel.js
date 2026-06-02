@@ -92,6 +92,20 @@ function AdminPanel() {
           >
             <span className="tab-icon">⚙️</span> Settings
           </button>
+
+          <button
+            className={`admin-tab ${activeTab === 'aboutus' ? 'active' : ''}`}
+            onClick={() => setActiveTab('aboutus')}
+          >
+            <span className="tab-icon">📝</span> About Us
+          </button>
+
+          <button
+            className={`admin-tab ${activeTab === 'contact' ? 'active' : ''}`}
+            onClick={() => setActiveTab('contact')}
+          >
+            <span className="tab-icon">✉️</span> Contact
+          </button>
         </div>
 
         <div className="admin-tab-content">
@@ -105,6 +119,8 @@ function AdminPanel() {
           {activeTab === 'content-cards' && <ContentCardsAdmin />}
           {activeTab === 'popular-products' && <PopularProductsAdmin />}
           {activeTab === 'settings' && <Settings />}
+          {activeTab === 'aboutus' && <Settings mode="about" />}
+          {activeTab === 'contact' && <Settings mode="contact" />}
         </div>
       </div>
     </div>

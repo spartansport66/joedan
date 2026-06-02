@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import './ProductDetail.css';
 import { getProductCharacteristics, getProductImages } from '../api';
 
-function ProductDetail({ product, onBack, onClose }) {
+function ProductDetail({ product, preloadedImages, onBack, onClose }) {
   const [characteristics, setCharacteristics] = useState([]);
-  const [images, setImages] = useState([]);
+  const [images, setImages] = useState(preloadedImages || []); // ✅ Use preloaded images
   const [mainImage, setMainImage] = useState(product?.pic2_url || product?.featured_image || '');
   const [loading, setLoading] = useState(true);
 
@@ -18,10 +18,12 @@ function ProductDetail({ product, onBack, onClose }) {
           const charResponse = await getProductCharacteristics(product.id);
           setCharacteristics(charResponse.data || []);
           
-          // Fetch product images (gallery images)
-          const imagesResponse = await getProductImages(product.id);
-          const imagesList = imagesResponse.data || [];
-          setImages(imagesList);
+          // ✅ Only fetch images if not preloaded
+          if (!preloadedImages || preloadedImages.length === 0) {
+            const imagesResponse = await getProductImages(product.id);
+            const imagesList = imagesResponse.data || [];
+            setImages(imagesList);
+          }
           
           // Set main image to pic2_url for popup display
           if (product.pic2_url) {
@@ -38,7 +40,7 @@ function ProductDetail({ product, onBack, onClose }) {
     };
 
     fetchProductData();
-  }, [product]);
+  }, [product, preloadedImages]);
 
   const formatDescription = (text) => {
     if (!text) return null;

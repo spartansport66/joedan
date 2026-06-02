@@ -1,5 +1,5 @@
 import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
-import { getProducts, getCategories, getSubcategories, getProductImages } from '../api';
+import { getProducts, getCategories, getSubcategories, getAllProductImages } from '../api';
 import ProductDetail from './ProductDetail';
 import './ProductShowcase.css';
 
@@ -17,13 +17,13 @@ const ProductShowcase = forwardRef((props, ref) => {
   const [showProductDetail, setShowProductDetail] = useState(false);
 
   useEffect(() => {
-    loadData();
+    loadProducts();
+    loadImagesAsync();
+    loadCategoriesAsync(); // Load in background
   }, []);
 
   useEffect(() => {
-    if (level4Id) {
-      setSelectedLevel4(level4Id);
-    }
+    setSelectedLevel4(level4Id || 'all');
   }, [level4Id]);
 
   // Expose selectLevel4 method to parent component
@@ -33,39 +33,61 @@ const ProductShowcase = forwardRef((props, ref) => {
     }
   }));
 
-  const loadData = async () => {
+  // ✅ PERFORMANCE FIX: Load products first, show immediately
+  const loadProducts = async () => {
     try {
       setLoading(true);
-      const [prodRes, catRes, subRes] = await Promise.all([
-        getProducts(),
-        getCategories(),
-        getSubcategories(),
-      ]);
+      const prodRes = await getProducts();
       setProducts(prodRes.data || []);
-      setCategories(catRes.data || []);
-      setSubcategories(subRes.data || []);
       setError('');
-
-      // Load images for all products
-      const imagesMap = {};
-      const imageIndexMap = {};
-      for (const product of prodRes.data || []) {
-        try {
-          const imgRes = await getProductImages(product.id);
-          imagesMap[product.id] = imgRes.data;
-          imageIndexMap[product.id] = 0;
-        } catch (err) {
-          imagesMap[product.id] = [];
-          imageIndexMap[product.id] = 0;
-        }
-      }
-      setProductImages(imagesMap);
-      setSelectedImageIndex(imageIndexMap);
     } catch (err) {
       setError('Failed to load products');
       console.error(err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // ✅ PERFORMANCE FIX: Load images asynchronously after products display
+  const loadImagesAsync = async () => {
+    try {
+      const allImgRes = await getAllProductImages();
+      
+      const imagesMap = {};
+      const imageIndexMap = {};
+      
+      // Group fetched images by product_id
+      (allImgRes.data || []).forEach(image => {
+        if (!imagesMap[image.product_id]) {
+          imagesMap[image.product_id] = [];
+        }
+        imagesMap[image.product_id].push(image);
+      });
+      
+      setProductImages(imagesMap);
+      
+      // Initialize image indices
+      const newIndexMap = {};
+      Object.keys(imagesMap).forEach(productId => {
+        newIndexMap[productId] = 0;
+      });
+      setSelectedImageIndex(newIndexMap);
+    } catch (err) {
+      console.error('Failed to load product images:', err);
+    }
+  };
+
+  // ✅ PERFORMANCE FIX: Load categories/subcategories in background without blocking render
+  const loadCategoriesAsync = async () => {
+    try {
+      const [catRes, subRes] = await Promise.all([
+        getCategories(),
+        getSubcategories(),
+      ]);
+      setCategories(catRes.data || []);
+      setSubcategories(subRes.data || []);
+    } catch (err) {
+      console.error('Failed to load categories/subcategories:', err);
     }
   };
 
@@ -225,6 +247,7 @@ const ProductShowcase = forwardRef((props, ref) => {
       {showProductDetail && selectedProduct && (
         <ProductDetail
           product={selectedProduct}
+          preloadedImages={productImages[selectedProduct.id] || []} // ✅ Pass pre-loaded images
           onBack={handleCloseProductDetail}
           onClose={handleCloseProductDetail}
         />

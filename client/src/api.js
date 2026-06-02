@@ -1,5 +1,10 @@
 import { supabase } from './supabase';
 
+// ✅ PERFORMANCE: Simple cache for product images to avoid refetching
+const imageCache = {};
+let imagesCacheTimestamp = 0;
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
 const isValidUuidFilter = (value) => {
   return (
     value !== undefined &&
@@ -63,7 +68,6 @@ export const getHierarchyFromLevel4 = async (level4Id) => {
       level3_id: level3Id,
       level4_id: level4Id,
       category_id: categoryId,
-      subcategory_id: level4Id, // level4 is the final subcategory
     };
   } catch (err) {
     console.error('Failed to get hierarchy from level4_id:', err);
@@ -472,6 +476,30 @@ export const getProductImages = async (productId) => {
   return { data };
 };
 
+// ✅ PERFORMANCE FIX: Batch load all product images in ONE query instead of N+1 queries
+// Also caches results to avoid refetching within 5 minutes
+export const getAllProductImages = async () => {
+  const now = Date.now();
+  
+  // Return cached data if still valid
+  if (Object.keys(imageCache).length > 0 && (now - imagesCacheTimestamp) < CACHE_DURATION) {
+    return { data: imageCache.allImages || [] };
+  }
+  
+  const { data, error } = await supabase
+    .from('product_images')
+    .select('*')
+    .order('product_id', { ascending: true })
+    .order('display_order', { ascending: true });
+  if (error) throw error;
+  
+  // Update cache
+  imageCache.allImages = data;
+  imagesCacheTimestamp = now;
+  
+  return { data };
+};
+
 export const createProductImage = async (data) => {
   const { data: result, error } = await supabase
     .from('product_images')
@@ -573,11 +601,17 @@ export const createSetting = async (data) => {
 };
 
 export const updateSetting = async (key, data) => {
+  const payload = {
+    key,
+    value: data.value,
+    updated_at: new Date().toISOString()
+  };
+
   const { data: result, error } = await supabase
     .from('settings')
-    .update({ value: data.value, updated_at: new Date().toISOString() })
-    .eq('key', key)
+    .upsert(payload, { onConflict: ['key'] })
     .select();
+
   if (error) throw error;
   return { data: result };
 };

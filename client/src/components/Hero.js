@@ -5,8 +5,8 @@ import './Hero.css';
 function Hero() {
   const [settings, setSettings] = useState({
     hero_image: '',
-    hero_title: 'Premium Products For Your Lifestyle',
-    hero_subtitle: 'Discover the finest collection of curated products'
+    hero_video: '',
+    hero_video_rotation: '0'
   });
   const [, setLoading] = useState(true);
 
@@ -23,8 +23,8 @@ function Hero() {
       });
       setSettings({
         hero_image: settingsObj.hero_image || '',
-        hero_title: settingsObj.hero_title || 'Premium Products For Your Lifestyle',
-        hero_subtitle: settingsObj.hero_subtitle || 'Discover the finest collection of curated products'
+        hero_video: settingsObj.hero_video || '',
+        hero_video_rotation: settingsObj.hero_video_rotation || '0'
       });
     } catch (err) {
       console.error('Failed to load settings', err);
@@ -33,24 +33,35 @@ function Hero() {
     }
   };
 
-  const heroStyle = settings.hero_image 
+  const hasVideo = Boolean(settings.hero_video);
+  const rotation = parseInt(settings.hero_video_rotation, 10) || 0;
+  const heroStyle = !hasVideo && settings.hero_image
     ? {
         backgroundImage: `url('${settings.hero_image}')`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat'
-      } 
+      }
     : {};
 
   return (
     <section className="hero" style={heroStyle}>
-      <div className="hero-content">
-        <h1 className="hero-title">{settings.hero_title}</h1>
-        <p className="hero-subtitle">{settings.hero_subtitle}</p>
-        <a href="#products" className="hero-cta">
-          Explore Collection
-        </a>
-      </div>
+      {hasVideo && (
+        <video
+          className="hero-video"
+          autoPlay
+          loop
+          muted
+          playsInline
+          preload="auto"
+          style={{ transform: `translate(-50%, -50%) rotate(${rotation}deg)` }}
+        >
+          <source src={settings.hero_video} type="video/mp4" />
+          Your browser does not support HTML5 video.
+        </video>
+      )}
+
+      <div className="hero-content"></div>
       <div className="hero-overlay"></div>
     </section>
   );

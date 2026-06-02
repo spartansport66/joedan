@@ -56,6 +56,46 @@ main {
   margin-right: auto;
 }
 
+.about-section,
+.contact-section {
+  padding: 80px 0;
+}
+
+.about-section {
+  background-color: #fafafa;
+}
+
+.contact-section {
+  background-color: #ffffff;
+}
+
+.section-content {
+  max-width: 820px;
+  margin: 0 auto;
+  color: #444;
+  line-height: 1.8;
+}
+
+.section-content p {
+  margin-bottom: 1rem;
+}
+
+.contact-details-list {
+  list-style: none;
+  padding: 0;
+  margin-top: 1.5rem;
+}
+
+.contact-details-list li {
+  margin-bottom: 0.85rem;
+  color: #444;
+  font-weight: 500;
+}
+
+.contact-details-list strong {
+  color: var(--primary-color);
+}
+
 /* Responsive Grid */
 .grid {
   display: grid;

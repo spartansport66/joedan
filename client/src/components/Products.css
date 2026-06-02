@@ -113,6 +113,17 @@
   font-style: italic;
 }
 
+.hint-text {
+  grid-column: span 4;
+  margin: 0 0 10px 0;
+  color: #555;
+  font-size: 0.9rem;
+  background: rgba(196, 165, 99, 0.08);
+  padding: 10px 12px;
+  border-left: 4px solid rgba(196, 165, 99, 0.8);
+  border-radius: 4px;
+}
+
 /* Images Button */
 .item-actions .images-btn {
   background-color: var(--accent-color);

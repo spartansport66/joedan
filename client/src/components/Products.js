@@ -7,6 +7,9 @@ import {
   getCategories,
   getSubcategoriesLevel1,
   getAllSubcategoriesLevel1,
+  getAllSubcategoriesLevel2,
+  getAllSubcategoriesLevel3,
+  getAllSubcategoriesLevel4,
   getSubcategoriesLevel2,
   getSubcategoriesLevel3,
   getSubcategoriesLevel4,
@@ -28,6 +31,10 @@ function Products() {
   const [level2Options, setLevel2Options] = useState([]);
   const [level3Options, setLevel3Options] = useState([]);
   const [level4Options, setLevel4Options] = useState([]);
+  const [allLevel1, setAllLevel1] = useState([]);
+  const [allLevel2, setAllLevel2] = useState([]);
+  const [allLevel3, setAllLevel3] = useState([]);
+  const [allLevel4, setAllLevel4] = useState([]);
   const [productImages, setProductImages] = useState({}); // { productId: [images] }
   const [loading, setLoading] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -36,12 +43,25 @@ function Products() {
     featured_image: '',
     pic2_url: '',
     details: '',
+    category_id: '',
+    level1_id: '',
+    level2_id: '',
+    level3_id: '',
     level4_id: '',
   });
   const [newImageUrl, setNewImageUrl] = useState('');
   const [error, setError] = useState('');
   const [, setSuccess] = useState('');
   const [selectedProductForImages, setSelectedProductForImages] = useState(null);
+
+  const resolveSubmissionError = (err) => {
+    if (!err) return 'Failed to save product';
+    const message = err?.message || err?.details || err?.error || JSON.stringify(err);
+    if (err.status === 409 || /duplicate|already exists|conflict/i.test(message)) {
+      return 'Product save failed: duplicate product or route conflict detected.';
+    }
+    return message;
+  };
 
   useEffect(() => {
     loadData();
@@ -72,6 +92,13 @@ function Products() {
       const cats = await getCategories();
       setCategories(cats.data || []);
       setLevel1Options(level1Res.data || []);
+      setAllLevel1(level1Res.data || []);
+      const allLevel2Res = await getAllSubcategoriesLevel2();
+      setAllLevel2(allLevel2Res.data || []);
+      const allLevel3Res = await getAllSubcategoriesLevel3();
+      setAllLevel3(allLevel3Res.data || []);
+      const allLevel4Res = await getAllSubcategoriesLevel4();
+      setAllLevel4(allLevel4Res.data || []);
       setLevel4Options(allLevel4);
       setError('');
 
@@ -94,10 +121,73 @@ function Products() {
     }
   };
 
+  const getFallbackLevel2Options = (categoryId) => {
+    if (!categoryId) return [];
+    return allLevel2.filter((level2) => {
+      const parentLevel1 = allLevel1.find((l1) => l1.id === level2.level1_id);
+      return parentLevel1?.category_id === categoryId;
+    });
+  };
+
+  const getFallbackLevel3Options = ({ categoryId, level1Id, level2Id }) => {
+    if (level2Id) return allLevel3.filter((level3) => level3.level2_id === level2Id);
+    if (level1Id) {
+      const level2Ids = allLevel2.filter((level2) => level2.level1_id === level1Id).map((level2) => level2.id);
+      return allLevel3.filter((level3) => level2Ids.includes(level3.level2_id));
+    }
+    if (categoryId) {
+      const level2Ids = allLevel2
+        .filter((level2) => {
+          const parentLevel1 = allLevel1.find((l1) => l1.id === level2.level1_id);
+          return parentLevel1?.category_id === categoryId;
+        })
+        .map((level2) => level2.id);
+      return allLevel3.filter((level3) => level2Ids.includes(level3.level2_id));
+    }
+    return [];
+  };
+
+  const getFallbackLevel4Options = ({ categoryId, level1Id, level2Id, level3Id }) => {
+    if (level3Id) return allLevel4.filter((level4) => level4.level3_id === level3Id);
+    if (level2Id) {
+      const level3Ids = allLevel3.filter((level3) => level3.level2_id === level2Id).map((level3) => level3.id);
+      return allLevel4.filter((level4) => level3Ids.includes(level4.level3_id));
+    }
+    if (level1Id) {
+      const level2Ids = allLevel2.filter((level2) => level2.level1_id === level1Id).map((level2) => level2.id);
+      const level3Ids = allLevel3.filter((level3) => level2Ids.includes(level3.level2_id)).map((level3) => level3.id);
+      return allLevel4.filter((level4) => level3Ids.includes(level4.level3_id));
+    }
+    if (categoryId) {
+      const level2Ids = allLevel2
+        .filter((level2) => {
+          const parentLevel1 = allLevel1.find((l1) => l1.id === level2.level1_id);
+          return parentLevel1?.category_id === categoryId;
+        })
+        .map((level2) => level2.id);
+      const level3Ids = allLevel3.filter((level3) => level2Ids.includes(level3.level2_id)).map((level3) => level3.id);
+      return allLevel4.filter((level4) => level3Ids.includes(level4.level3_id));
+    }
+    return [];
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.name) {
       setError('Product name is required');
+      return;
+    }
+
+    if (!form.category_id && !form.level1_id && !form.level2_id && !form.level3_id && !form.level4_id) {
+      setError('Please select at least one category or subcategory level before saving.');
+      return;
+    }
+
+    const duplicateProduct = products.find(
+      (p) => p.id !== editingId && p.name?.trim().toLowerCase() === form.name.trim().toLowerCase()
+    );
+    if (duplicateProduct) {
+      setError('A product with this name already exists. Please choose a different name.');
       return;
     }
 
@@ -185,8 +275,9 @@ function Products() {
       loadData();
       setTimeout(() => setSuccess(''), 2000);
     } catch (err) {
-      setError('Failed to save product');
-      console.error(err);
+      const message = resolveSubmissionError(err);
+      setError(message);
+      console.error('Product save error:', err);
     }
   };
 
@@ -262,9 +353,38 @@ function Products() {
     }
   };
 
-  const getLevel4Name = (level4Id) => {
-    const level4 = level4Subcats.find((l4) => l4.id === level4Id);
-    return level4 ? level4.name : 'Unknown Level 4';
+  const getRouteName = (product) => {
+    const findName = (list, id) => (list && list.find((item) => item.id === id)?.name) || null;
+    let categoryId = product.category_id;
+    let level1Id = product.level1_id;
+    let level2Id = product.level2_id;
+    let level3Id = product.level3_id;
+    const level4Id = product.level4_id;
+
+    if (!level3Id && level4Id) {
+      const level4 = allLevel4.find((item) => item.id === level4Id);
+      level3Id = level4?.level3_id || level3Id;
+    }
+    if (!level2Id && level3Id) {
+      const level3 = allLevel3.find((item) => item.id === level3Id);
+      level2Id = level3?.level2_id || level2Id;
+    }
+    if (!level1Id && level2Id) {
+      const level2 = allLevel2.find((item) => item.id === level2Id);
+      level1Id = level2?.level1_id || level1Id;
+    }
+    if (!categoryId && level1Id) {
+      const level1 = allLevel1.find((item) => item.id === level1Id);
+      categoryId = level1?.category_id || categoryId;
+    }
+
+    const parts = [];
+    if (categoryId) parts.push(findName(categories, categoryId) || 'Category');
+    if (level1Id) parts.push(findName(allLevel1, level1Id) || 'Level 1');
+    if (level2Id) parts.push(findName(allLevel2, level2Id) || 'Level 2');
+    if (level3Id) parts.push(findName(allLevel3, level3Id) || 'Level 3');
+    if (level4Id) parts.push(findName(allLevel4, level4Id) || 'Level 4');
+    return parts.length ? parts.join(' › ') : 'Unspecified route';
   };
 
   return (
@@ -316,17 +436,34 @@ function Products() {
             return parts.length ? <p className="route">Selected route: {parts.join(' › ')}</p> : null;
           })()}
         </div>
+        <p className="hint-text">Tip: You can select a deeper level even when an upper level is missing. The form will assign the nearest valid parent route automatically.</p>
         <div className="hierarchy-selects">
           <select
             value={form.category_id || ''}
             onChange={async (e) => {
               const catId = e.target.value || '';
               setForm({ ...form, category_id: catId, level1_id: '', level2_id: '', level3_id: '', level4_id: '' });
-              const l1 = catId ? await getSubcategoriesLevel1(catId) : { data: [] };
-              setLevel1Options(l1.data || []);
-              setLevel2Options([]);
-              setLevel3Options([]);
-              setLevel4Options([]);
+              if (!catId) {
+                setLevel1Options([]);
+                setLevel2Options([]);
+                setLevel3Options([]);
+                setLevel4Options([]);
+                return;
+              }
+
+              const l1 = await getSubcategoriesLevel1(catId);
+              const l1Data = l1.data || [];
+              setLevel1Options(l1Data);
+
+              if (l1Data.length > 0) {
+                setLevel2Options([]);
+                setLevel3Options([]);
+                setLevel4Options([]);
+              } else {
+                setLevel2Options(getFallbackLevel2Options(catId));
+                setLevel3Options(getFallbackLevel3Options({ categoryId: catId }));
+                setLevel4Options(getFallbackLevel4Options({ categoryId: catId }));
+              }
             }}
           >
             <option value="">Select Category (or choose deeper level)</option>
@@ -340,10 +477,22 @@ function Products() {
             onChange={async (e) => {
               const id = e.target.value || '';
               setForm({ ...form, level1_id: id, level2_id: '', level3_id: '', level4_id: '' });
-              const l2 = id ? await getSubcategoriesLevel2(id) : { data: [] };
-              setLevel2Options(l2.data || []);
-              setLevel3Options([]);
-              setLevel4Options([]);
+              if (!id) {
+                setLevel2Options(getFallbackLevel2Options(form.category_id));
+                setLevel3Options(getFallbackLevel3Options({ categoryId: form.category_id }));
+                setLevel4Options(getFallbackLevel4Options({ categoryId: form.category_id }));
+                return;
+              }
+              const l2 = await getSubcategoriesLevel2(id);
+              const l2Data = l2.data || [];
+              setLevel2Options(l2Data);
+              if (l2Data.length > 0) {
+                setLevel3Options([]);
+                setLevel4Options([]);
+              } else {
+                setLevel3Options(getFallbackLevel3Options({ level1Id: id, categoryId: form.category_id }));
+                setLevel4Options(getFallbackLevel4Options({ level1Id: id, categoryId: form.category_id }));
+              }
             }}
           >
             <option value="">Select Level 1</option>
@@ -355,9 +504,19 @@ function Products() {
             onChange={async (e) => {
               const id = e.target.value || '';
               setForm({ ...form, level2_id: id, level3_id: '', level4_id: '' });
-              const l3 = id ? await getSubcategoriesLevel3(id) : { data: [] };
-              setLevel3Options(l3.data || []);
-              setLevel4Options([]);
+              if (!id) {
+                setLevel3Options(getFallbackLevel3Options({ level1Id: form.level1_id, categoryId: form.category_id }));
+                setLevel4Options(getFallbackLevel4Options({ level1Id: form.level1_id, categoryId: form.category_id }));
+                return;
+              }
+              const l3 = await getSubcategoriesLevel3(id);
+              const l3Data = l3.data || [];
+              setLevel3Options(l3Data);
+              if (l3Data.length > 0) {
+                setLevel4Options([]);
+              } else {
+                setLevel4Options(getFallbackLevel4Options({ level2Id: id, level1Id: form.level1_id, categoryId: form.category_id }));
+              }
             }}
           >
             <option value="">Select Level 2</option>
@@ -369,8 +528,13 @@ function Products() {
             onChange={async (e) => {
               const id = e.target.value || '';
               setForm({ ...form, level3_id: id, level4_id: '' });
-              const l4 = id ? await getSubcategoriesLevel4(id) : { data: [] };
-              setLevel4Options(l4.data || []);
+              if (!id) {
+                setLevel4Options(getFallbackLevel4Options({ level2Id: form.level2_id, level1Id: form.level1_id, categoryId: form.category_id }));
+                return;
+              }
+              const l4 = await getSubcategoriesLevel4(id);
+              const l4Data = l4.data || [];
+              setLevel4Options(l4Data.length > 0 ? l4Data : getFallbackLevel4Options({ level3Id: id, level2Id: form.level2_id, level1Id: form.level1_id, categoryId: form.category_id }));
             }}
           >
             <option value="">Select Level 3</option>
@@ -430,7 +594,7 @@ function Products() {
               <div className="item-info">
                 <h3>{product.name}</h3>
                 <p className="category">
-                  Level 4: {getLevel4Name(product.level4_id)}
+                  Route: {getRouteName(product)}
                 </p>
                 {product.details && <p className="details">{product.details}</p>}
                 

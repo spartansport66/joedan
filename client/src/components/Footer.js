@@ -1,8 +1,11 @@
 import React from 'react';
 import './Footer.css';
 
-function Footer() {
+function Footer({ contactEmail, contactPhone, contactAddress }) {
   const currentYear = new Date().getFullYear();
+  const email = contactEmail || 'info@joedan.com';
+  const phone = contactPhone || '+1 (555) 123-4567';
+  const address = contactAddress || '123 Main Street, City, State';
 
   return (
     <footer className="footer">
@@ -35,9 +38,9 @@ function Footer() {
         <div className="footer-section">
           <h4>Contact Info</h4>
           <ul>
-            <li>Email: info@joedan.com</li>
-            <li>Phone: +1 (555) 123-4567</li>
-            <li>Address: 123 Main Street, City, State</li>
+            <li>Email: {email}</li>
+            <li>Phone: {phone}</li>
+            <li>Address: {address}</li>
           </ul>
         </div>
       </div>

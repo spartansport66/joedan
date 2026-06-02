@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import './App.css';
 import Header from './components/Header';
 import Hero from './components/Hero';
@@ -12,6 +12,7 @@ import ProductShowcase from './components/ProductShowcase';
 import PopularProducts from './components/PopularProducts';
 import AdminPanel from './components/AdminPanel';
 import Footer from './components/Footer';
+import { getSettings } from './api';
 
 function App() {
   const [showAdmin, setShowAdmin] = useState(false);
@@ -19,6 +20,16 @@ function App() {
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [passwordInput, setPasswordInput] = useState('');
   const [passwordError, setPasswordError] = useState('');
+  
+  const [pageSettings, setPageSettings] = useState({
+    about_section_title: 'About Us',
+    about_section_content: 'Share your story, brand vision, and why customers choose Joedan.',
+    contact_section_title: 'Contact',
+    contact_section_content: 'Reach out to Joedan for support, inquiries, and custom requests.',
+    contact_email: 'info@joedan.com',
+    contact_phone: '+1 (555) 123-4567',
+    contact_address: '123 Main Street, City, State',
+  });
   
   // Navigation state
   const [currentLevel, setCurrentLevel] = useState('categories'); // 'categories' | 'level1' | 'level2' | 'level3' | 'level4' | 'products'
@@ -58,7 +69,114 @@ function App() {
     setPasswordError('');
   };
 
+  const pushHistoryState = (state) => {
+    const nextState = {
+      currentLevel,
+      selectedCategory,
+      selectedLevel1,
+      selectedLevel2,
+      selectedLevel3,
+      selectedLevel4,
+      ...state,
+    };
+    window.history.pushState(nextState, '');
+  };
+
+  const restoreHistoryState = (state) => {
+    setCurrentLevel(state.currentLevel || 'categories');
+    setSelectedCategory(state.selectedCategory ?? null);
+    setSelectedLevel1(state.selectedLevel1 ?? null);
+    setSelectedLevel2(state.selectedLevel2 ?? null);
+    setSelectedLevel3(state.selectedLevel3 ?? null);
+    setSelectedLevel4(state.selectedLevel4 ?? null);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    const initialState = {
+      currentLevel: 'categories',
+      selectedCategory: null,
+      selectedLevel1: null,
+      selectedLevel2: null,
+      selectedLevel3: null,
+      selectedLevel4: null,
+    };
+    window.history.replaceState(initialState, '');
+
+    const handlePopState = (event) => {
+      const state = event.state;
+      if (state) {
+        restoreHistoryState(state);
+      } else {
+        restoreHistoryState(initialState);
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const res = await getSettings();
+        const settingsObj = {};
+        res.data?.forEach((setting) => {
+          settingsObj[setting.key] = setting.value || '';
+        });
+        setPageSettings((prev) => ({ ...prev, ...settingsObj }));
+      } catch (err) {
+        console.error('Failed to load page settings', err);
+      }
+    };
+
+    loadSettings();
+  }, []);
+
+  const handleNavClick = (target) => {
+    if (target === 'home') {
+      handleBackToCategories();
+      return;
+    }
+
+    if (target === 'products') {
+      if (currentLevel !== 'products') {
+        pushHistoryState({
+          currentLevel: 'products',
+          selectedCategory: null,
+          selectedLevel1: null,
+          selectedLevel2: null,
+          selectedLevel3: null,
+          selectedLevel4: null,
+        });
+        setCurrentLevel('products');
+        setSelectedCategory(null);
+        setSelectedLevel1(null);
+        setSelectedLevel2(null);
+        setSelectedLevel3(null);
+        setSelectedLevel4(null);
+      }
+      setTimeout(() => {
+        document.getElementById('products')?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+      return;
+    }
+
+    const section = document.getElementById(target);
+    if (section) {
+      section.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   const handleCategorySelect = (categoryId) => {
+    pushHistoryState({
+      currentLevel: 'level1',
+      selectedCategory: categoryId,
+      selectedLevel1: null,
+      selectedLevel2: null,
+      selectedLevel3: null,
+      selectedLevel4: null,
+    });
     setSelectedCategory(categoryId);
     setSelectedLevel1(null);
     setSelectedLevel2(null);
@@ -69,6 +187,13 @@ function App() {
   };
 
   const handleLevel1Select = (level1Id) => {
+    pushHistoryState({
+      currentLevel: 'level2',
+      selectedLevel1: level1Id,
+      selectedLevel2: null,
+      selectedLevel3: null,
+      selectedLevel4: null,
+    });
     setSelectedLevel1(level1Id);
     setSelectedLevel2(null);
     setSelectedLevel3(null);
@@ -78,6 +203,12 @@ function App() {
   };
 
   const handleLevel2Select = (level2Id) => {
+    pushHistoryState({
+      currentLevel: 'level3',
+      selectedLevel2: level2Id,
+      selectedLevel3: null,
+      selectedLevel4: null,
+    });
     setSelectedLevel2(level2Id);
     setSelectedLevel3(null);
     setSelectedLevel4(null);
@@ -86,6 +217,11 @@ function App() {
   };
 
   const handleLevel3Select = (level3Id) => {
+    pushHistoryState({
+      currentLevel: 'level4',
+      selectedLevel3: level3Id,
+      selectedLevel4: null,
+    });
     setSelectedLevel3(level3Id);
     setSelectedLevel4(null);
     setCurrentLevel('level4');
@@ -93,9 +229,13 @@ function App() {
   };
 
   const handleLevel4Select = (level4Id) => {
+    pushHistoryState({
+      currentLevel: 'products',
+      selectedLevel4: level4Id,
+    });
     setSelectedLevel4(level4Id);
     setCurrentLevel('products');
-    
+
     // Trigger product filtering
     if (productShowcaseRef.current) {
       productShowcaseRef.current.selectLevel4(level4Id);
@@ -105,6 +245,14 @@ function App() {
   };
 
   const handleBackToCategories = () => {
+    pushHistoryState({
+      currentLevel: 'categories',
+      selectedCategory: null,
+      selectedLevel1: null,
+      selectedLevel2: null,
+      selectedLevel3: null,
+      selectedLevel4: null,
+    });
     setCurrentLevel('categories');
     setSelectedCategory(null);
     setSelectedLevel1(null);
@@ -115,6 +263,13 @@ function App() {
   };
 
   const handleBackToLevel1 = () => {
+    pushHistoryState({
+      currentLevel: 'level1',
+      selectedLevel1: null,
+      selectedLevel2: null,
+      selectedLevel3: null,
+      selectedLevel4: null,
+    });
     setCurrentLevel('level1');
     setSelectedLevel1(null);
     setSelectedLevel2(null);
@@ -124,6 +279,12 @@ function App() {
   };
 
   const handleBackToLevel2 = () => {
+    pushHistoryState({
+      currentLevel: 'level2',
+      selectedLevel2: null,
+      selectedLevel3: null,
+      selectedLevel4: null,
+    });
     setCurrentLevel('level2');
     setSelectedLevel2(null);
     setSelectedLevel3(null);
@@ -132,6 +293,11 @@ function App() {
   };
 
   const handleBackToLevel3 = () => {
+    pushHistoryState({
+      currentLevel: 'level3',
+      selectedLevel3: null,
+      selectedLevel4: null,
+    });
     setCurrentLevel('level3');
     setSelectedLevel3(null);
     setSelectedLevel4(null);
@@ -139,6 +305,10 @@ function App() {
   };
 
   const handleBackToLevel4 = () => {
+    pushHistoryState({
+      currentLevel: 'level4',
+      selectedLevel4: null,
+    });
     setCurrentLevel('level4');
     setSelectedLevel4(null);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -146,12 +316,13 @@ function App() {
 
   return (
     <div className="App">
-      <Header onAdminClick={handleAdminToggle} isAdmin={showAdmin} />
+      <Header onAdminClick={handleAdminToggle} isAdmin={showAdmin} onNavClick={handleNavClick} />
       
       {showAdmin && isAuthenticated ? (
         <AdminPanel />
       ) : (
         <>
+          <div id="home" />
           <Hero />
           
           {/* Level 0: Categories */}
@@ -207,7 +378,7 @@ function App() {
           )}
           
           {/* Final: Products */}
-          {currentLevel === 'products' && selectedLevel4 && (
+          {currentLevel === 'products' && (
             <>
               <div className="breadcrumb-nav">
                 <div className="container">
@@ -225,6 +396,38 @@ function App() {
               />
             </>
           )}
+
+          <section id="about" className="about-section">
+            <div className="container">
+              <h2 className="section-title">{pageSettings.about_section_title || 'About Us'}</h2>
+              <div className="section-content">
+                {pageSettings.about_section_content
+                  .split('\n')
+                  .map((line, index) => (
+                    <p key={index}>{line}</p>
+                  ))}
+              </div>
+            </div>
+          </section>
+
+          <section id="contact" className="contact-section">
+            <div className="container">
+              <h2 className="section-title">{pageSettings.contact_section_title || 'Contact'}</h2>
+              <div className="section-content">
+                {pageSettings.contact_section_content
+                  .split('\n')
+                  .map((line, index) => (
+                    <p key={index}>{line}</p>
+                  ))}
+
+                <ul className="contact-details-list">
+                  <li><strong>Email:</strong> {pageSettings.contact_email || 'info@joedan.com'}</li>
+                  <li><strong>Phone:</strong> {pageSettings.contact_phone || '+1 (555) 123-4567'}</li>
+                  <li><strong>Address:</strong> {pageSettings.contact_address || '123 Main Street, City, State'}</li>
+                </ul>
+              </div>
+            </div>
+          </section>
         </>
       )}
 
@@ -253,7 +456,11 @@ function App() {
         </div>
       )}
       
-      <Footer />
+      <Footer
+        contactEmail={pageSettings.contact_email}
+        contactPhone={pageSettings.contact_phone}
+        contactAddress={pageSettings.contact_address}
+      />
     </div>
   );
 }

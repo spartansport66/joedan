@@ -24,6 +24,15 @@
   align-items: flex-start;
 }
 
+.header-logo .logo-link {
+  background: none;
+  border: none;
+  color: inherit;
+  text-align: left;
+  padding: 0;
+  cursor: pointer;
+}
+
 .header-logo h2 {
   font-size: 1.5rem;
   font-weight: 600;
