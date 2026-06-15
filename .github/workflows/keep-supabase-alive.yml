@@ -1,0 +1,19 @@
+name: Keep Supabase Active
+
+on:
+  schedule:
+    # Runs every 5 days at midnight UTC
+    - cron: '0 0 */5 * *'
+  workflow_dispatch:  # Allow manual trigger from GitHub Actions tab
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase API
+        run: |
+          curl -s -X GET \
+            'https://aywaiyzfzcrkremalqaq.supabase.co/rest/v1/categories?select=id&limit=1' \
+            -H 'apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF5d2FpeXpmemNya3JlbWFscWFxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg4MzE2MTMsImV4cCI6MjA5NDQwNzYxM30.B3jhv7EzNxt0uZDqtO2EcIWNg16JwiaIbJXV6JJfrDM' \
+            -H 'Content-Type: application/json' \
+            -w "\nHTTP Status: %{http_code}\n"
